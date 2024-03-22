@@ -126,6 +126,7 @@ MODEL_CKPT = "https://thor.robots.ox.ac.uk/staging/env-dante/mask-rcnn-R-50-FPN-
 #@markdown need to).
 
 import logging
+import time
 
 import PIL.Image
 import detectron2.checkpoint
@@ -138,6 +139,7 @@ import detectron2.structures.masks
 import detectron2.utils.visualizer
 import numpy as np
 import torch
+import torch.utils.data
 
 import google.colab.output
 import google.colab.files
@@ -148,34 +150,24 @@ _logger = logging.getLogger()
 logging.basicConfig()
 
 
-class Predictor:
-    """Simple end to end detection predictor given a LazyConfig."""
+class Detectron2DatasetFromFilelist(torch.utils.data.Dataset):
+    def __init__(self, fpath_list):
+        super().__init__()
+        self._fpath_list = fpath_list
 
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.model = detectron2.config.instantiate(cfg.model)
-        self.model = self.model.to(cfg.train.device)
-        checkpointer = detectron2.checkpoint.DetectionCheckpointer(self.model)
-        checkpointer.load(cfg.train.init_checkpoint)
-        self.augmentations = detectron2.data.transforms.AugmentationList(
-            [
-                detectron2.config.instantiate(x)
-                for x in cfg.dataloader.test.mapper.augmentations
-            ]
-        )
-        self.model.eval()
+    def __len__(self):
+        return len(self._fpath_list)
 
-    def __call__(self, original_image):
-        with torch.no_grad():
-            # Apply pre-processing to image.
-            height, width = original_image.shape[:2]
-            image = self.augmentations(
-                detectron2.data.transforms.AugInput(original_image)
-            ).apply_image(original_image)
-            image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
-            inputs = {"image": image, "height": height, "width": width}
-            predictions = self.model([inputs])[0]
-            return predictions
+    def __getitem__(self, idx):
+        return {"file_name": self._fpath_list[idx]}
+
+
+def build_model(cfg):
+    model = detectron2.config.instantiate(cfg.model)
+    model = model.to(cfg.train.device)
+    checkpointer = detectron2.checkpoint.DetectionCheckpointer(model)
+    checkpointer.load(cfg.train.init_checkpoint)
+    return model
 
 
 def build_thing_colours(metadata, thing_name_to_colour_name):
@@ -196,6 +188,9 @@ def pred_classes_to_labels(pred_classes, metadata):
 
 
 def pred_boxes_to_masks(boxes):
+    """Convert Boxes to PolygonMasks because the Visualizer only shows
+    boxes boundaries but want to "fill" the boxes.
+    """
     masks = []
     for box in np.asarray(boxes.to("cpu")):
         masks.append([np.array([
@@ -207,24 +202,56 @@ def pred_boxes_to_masks(boxes):
     return detectron2.structures.masks.PolygonMasks(masks)
 
 
-def show_instance_predictions(img, predictions, metadata, score_thresh):
-    v = detectron2.utils.visualizer.Visualizer(
+def transform_boxes(augmentations, original_width, original_height, boxes):
+    """Convert Boxes coordinates from one image size to another."""
+    aug_input = detectron2.data.transforms.AugInput(
+        np.ndarray((original_width, original_height)), boxes=boxes.to("cpu")
+    )
+    transform = augmentations(aug_input)  # in place transform
+    del transform
+    return detectron2.structures.Boxes(aug_input.boxes).to(boxes.device)
+
+
+def show_instance_predictions(
+    input, output, augmentations, metadata, score_thresh
+):
+    instances = output["instances"].to("cpu")
+    # The model saw a resized/transformed image (input["image"] ---
+    # the transformation would have been applied by the dataloader).
+    # The output predicted boxes are relative to the original image
+    # size though.  Because we are showing the predictions on top of
+    # the resized image we need to transform the boxes.  We could show
+    # the boxes on the original image but: 1) we'd have to read the
+    # image again; ad 2) showing the resized image highlights any
+    # issues caused by the image transform.
+    boxes = transform_boxes(
+        augmentations,
+        input["width"],
+        input["height"],
+        instances.pred_boxes
+    )
+
+    wanted = instances.scores > score_thresh
+    boxes = boxes[wanted]
+    masks = pred_boxes_to_masks(boxes)
+
+    img = input["image"].numpy().transpose(1, 2, 0)
+    vis = detectron2.utils.visualizer.Visualizer(
         img[:, :, ::-1],
         metadata=metadata,
         instance_mode=detectron2.utils.visualizer.ColorMode.SEGMENTATION,
     )
-    wanted = predictions["instances"].scores > score_thresh
-    out = v.overlay_instances(
-        boxes=predictions["instances"].pred_boxes[wanted].to("cpu"),
-        masks=pred_boxes_to_masks(predictions["instances"].pred_boxes[wanted]),
+    vis_out = vis.overlay_instances(
+        boxes=boxes,
+        masks=masks,
         labels=pred_classes_to_labels(
-            predictions["instances"].pred_classes[wanted], metadata
+            instances.pred_classes[wanted], metadata
         ),
         assigned_colors=pred_classes_to_colours(
-            predictions["instances"].pred_classes[wanted], metadata
+            instances.pred_classes[wanted], metadata
         )
     )
-    cv2_imshow(out.get_image()[:, :, ::-1])
+    cv2_imshow(vis_out.get_image()[:, :, ::-1])
 
 
 cfg = detectron2.config.LazyConfig.load(
@@ -236,7 +263,9 @@ if USE_GPU:
 else:
     cfg.train.device = "cpu"
 
-metadata = detectron2.data.catalog.MetadataCatalog.get(cfg.dataloader.test.dataset.names[0])
+metadata = detectron2.data.catalog.MetadataCatalog.get(
+    cfg.dataloader.test.dataset.names[0]
+)
 
 metadata.set(
     thing_colors=build_thing_colours(
@@ -257,8 +286,9 @@ metadata.set(
     )
 )
 
-predictor = Predictor(cfg)
 
+model = build_model(cfg)
+model = model.eval()
 
 # %% [markdown] id="AXRwfL1NAw6O"
 # ## 3 - Run Detector
@@ -277,15 +307,23 @@ predictor = Predictor(cfg)
 google.colab.output.no_vertical_scroll()
 
 uploaded = google.colab.files.upload()
-for fpath in uploaded.keys():
-    try:
-        img = detectron2.data.detection_utils.read_image(
-            fpath,
-            cfg.dataloader.train.mapper.image_format
+dataset = Detectron2DatasetFromFilelist(list(uploaded.keys()))
+dataset_mapper = detectron2.config.instantiate(cfg.dataloader.test.mapper)
+dataloader = detectron2.data.build_detection_test_loader(
+    dataset, mapper=dataset_mapper, batch_size=1,
+)
+
+for inputs in dataloader:
+    with torch.no_grad():
+        start_compute_time = time.perf_counter()
+        outputs = model(inputs)
+        compute_time = time.perf_counter() - start_compute_time
+        _logger.debug("Inference time: %f seconds", compute_time)
+    for input, output in zip(inputs, outputs):
+        show_instance_predictions(
+            input,
+            output,
+            dataset_mapper.augmentations,
+            metadata,
+            CONFIDENCE_THRESHOLD
         )
-    except Exception as exc:
-        _logger.error("Failed to read %s: %s", fpath, exc)
-    predictions = predictor(img)
-    show_instance_predictions(
-        img, predictions, metadata, CONFIDENCE_THRESHOLD
-    )
