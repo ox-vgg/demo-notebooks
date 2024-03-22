@@ -127,6 +127,7 @@ MODEL_CKPT = "https://thor.robots.ox.ac.uk/staging/env-dante/mask-rcnn-R-50-FPN-
 
 import logging
 import time
+import warnings
 
 import PIL.Image
 import detectron2.checkpoint
@@ -148,6 +149,19 @@ from google.colab.patches import cv2_imshow
 
 _logger = logging.getLogger()
 logging.basicConfig()
+
+
+# XXX: Detectron2 has not fixed, and does not look interested in
+# fixing, this issue
+# https://github.com/facebookresearch/detectron2/issues/3786
+# https://github.com/facebookresearch/detectron2/pull/4531 So silence
+# to avoid scaring users.
+warnings.filterwarnings(
+    "ignore",
+    message="torch\.meshgrid: in an upcoming release, it will be required to pass the indexing argument\. \(Triggered internally at \.\./aten/src/ATen/native/TensorShape\.cpp",
+    category=UserWarning,
+    module="torch.functional"
+)
 
 
 class Detectron2DatasetFromFilelist(torch.utils.data.Dataset):
