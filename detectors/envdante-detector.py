@@ -101,32 +101,19 @@ else:
 # stderr anyway.
 # !pip install --quiet git+https://github.com/facebookresearch/detectron2.git > /dev/null
 
-# %% [markdown] id="rmMI8QbZVnUf"
-# ### 2.3 - Settings
-
-# %% cellView="form" id="hF_7RBxmDCTx"
-#@markdown When the model detects something, that detection is
-#@markdown made with a confidence score between 0 and 100%.
-#@markdown Detections with a confidence score lower than the selected
-#@markdown threshold will be discarded.
-
-CONFIDENCE_THRESHOLD = 50  #@param {type: "slider", min: 0, max: 100, step: 1}
-CONFIDENCE_THRESHOLD /= 100.0
-
-# In the future we can make these options but at the moment we only have
-# these anyway.
-DETECTRON2_CONFIG = "https://thor.robots.ox.ac.uk/staging/env-dante/mask-rcnn-R-50-FPN-D526v2-2024-03-12.py"
-MODEL_CKPT = "https://thor.robots.ox.ac.uk/staging/env-dante/mask-rcnn-R-50-FPN-D526v2-2024-03-12.pth"
-
-
 # %% [markdown] id="hF_7RBxmDCTx"
-# ### 2.4 - Load dependencies and configure
+# ### 2.3 - Load dependencies and configure
 
 # %% cellView="form" id="iimL6Db6gmbb"
 
 #@markdown This cell prepares the detector to run.  This is the place
 #@markdown to make changes to the code if you want (but you should not
 #@markdown need to).
+
+# In the future we can make these configurable but at the moment we
+# only have these anyway.
+DETECTRON2_CONFIG = "https://thor.robots.ox.ac.uk/staging/env-dante/mask-rcnn-R-50-FPN-D526v2-2024-03-12.py"
+MODEL_CKPT = "https://thor.robots.ox.ac.uk/staging/env-dante/mask-rcnn-R-50-FPN-D526v2-2024-03-12.pth"
 
 import logging
 import time
@@ -306,6 +293,26 @@ metadata.set(
 
 model = build_model(cfg)
 model = model.eval()
+
+# %% [markdown] id="rmMI8QbZVnUf"
+# ### 2.4 - Settings
+
+# %% cellView="form" id="hF_7RBxmDCTx"
+
+#@markdown You can change these settings at any time.  If you do, you
+#@markdown need to run this cell again as well as any analysis you
+#@markdown want done with the new settings.
+
+#@markdown #### Confidence Threshold
+#@markdown
+#@markdown When the model detects something, that detection is
+#@markdown made with a confidence score between 0 and 100%.
+#@markdown Detections with a confidence score lower than the selected
+#@markdown threshold will be discarded.
+
+CONFIDENCE_THRESHOLD = 50  #@param {type: "slider", min: 0, max: 100, step: 1}
+CONFIDENCE_THRESHOLD /= 100.0
+
 
 # %% [markdown] id="AXRwfL1NAw6O"
 # ## 3 - Run Detector
