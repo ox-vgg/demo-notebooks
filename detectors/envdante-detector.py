@@ -314,6 +314,12 @@ CONFIDENCE_THRESHOLD = 50  #@param {type: "slider", min: 0, max: 100, step: 1}
 CONFIDENCE_THRESHOLD /= 100.0
 
 
+# XXX: I'm not sure why but increasing the batch size is not making
+# things any faster.  So keep it at 1 so we don't have to worry about
+# handling out of memory errors.
+BATCH_SIZE = 1
+
+
 # %% [markdown] id="AXRwfL1NAw6O"
 # ## 3 - Run Detector
 
@@ -334,7 +340,7 @@ uploaded = google.colab.files.upload()
 dataset = Detectron2DatasetFromFilelist(list(uploaded.keys()))
 dataset_mapper = detectron2.config.instantiate(cfg.dataloader.test.mapper)
 dataloader = detectron2.data.build_detection_test_loader(
-    dataset, mapper=dataset_mapper, batch_size=1,
+    dataset, mapper=dataset_mapper, batch_size=BATCH_SIZE,
 )
 
 for inputs in dataloader:
@@ -342,7 +348,11 @@ for inputs in dataloader:
         start_compute_time = time.perf_counter()
         outputs = model(inputs)
         compute_time = time.perf_counter() - start_compute_time
-        _logger.debug("Inference time: %f seconds", compute_time)
+        _logger.debug(
+            "Inference time: %f seconds (batch size %d)",
+            compute_time,
+            BATCH_SIZE
+        )
     for input, output in zip(inputs, outputs):
         show_instance_predictions(
             input,
