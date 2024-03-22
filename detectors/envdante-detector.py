@@ -37,7 +37,10 @@
 #
 # A GPU is not required to run this program but without a GPU it will
 # run much slower.  Depending on the amount of data to analyse, it
-# might not be sensible to use it without a GPU>
+# might not be sensible to use it without a GPU.  For reference, a
+# "normal" sized image (600x1024 pixels) takes about 0.2 seconds to
+# analyse with a GPU.  On a CPU, the same image takes about 15
+# seconds (75 times slower).
 #
 # By default, this notebook will run with a GPU.  However, it is
 # possible that you were not allocated one, typically because you've
