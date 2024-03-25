@@ -34,15 +34,13 @@ help:
 
 
 notebooks: \
-  notebooks/detectors/envdante-detector.ipynb
-
+  notebooks/detectors/envdante-detector.ipynb \
+  notebooks/tracking/follow-things-around.ipynb
 
 define NOTEBOOK_METADATA
 { \
   "colab": { \
     "provenance": [], \
-    "collapsed_sections": [ \
-    ], \
     "toc_visible": true \
   }, \
   "kernelspec": { \
