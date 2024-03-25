@@ -297,7 +297,7 @@ model = model.eval()
 # %% [markdown] id="rmMI8QbZVnUf"
 # ### 2.4 - Settings
 
-# %% cellView="form" id="hF_7RBxmDCTx"
+# %% cellView="form" id="JdcWQVZVjk0K"
 
 #@markdown You can change these settings at any time.  If you do, you
 #@markdown need to run this cell again as well as any analysis you
