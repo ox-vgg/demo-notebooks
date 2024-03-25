@@ -65,6 +65,6 @@ notebooks/%.ipynb: src/%.py
 	$(JUPYTEXT) --to ipynb --output - $< \
 	    --opt cell_metadata_filter=cellView,collapsed,-id \
 	    --update-metadata '$(NOTEBOOK_METADATA)' \
-	    | $(JQ) 'del(.metadata.jupytext)' \
-	    | $(JQ) '.cells[] |= ( .id = .metadata.id)' \
+	    | $(JQ) --indent 1 'del(.metadata.jupytext)' \
+	    | $(JQ) --indent 1 '.cells[] |= ( .id = .metadata.id)' \
 	    > $@
