@@ -8,7 +8,7 @@
 # designed to run in [Google
 # Colab](https://colab.research.google.com/).  If you are not reading
 # this notebook in Google Colab, click
-# [here](https://colab.research.google.com/github/ox-vgg/demo-notebooks/blob/main/detectors/envdante-detector.ipynb).
+# [here](https://colab.research.google.com/github/ox-vgg/demo-notebooks/blob/main/notebooks/detectors/envdante-detector.ipynb).
 
 # %% [markdown] id="-tfDPTizFHUi"
 # ### 1.1 - What is, and how to use, a Jupyter notebook

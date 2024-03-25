@@ -34,7 +34,7 @@ help:
 
 
 notebooks: \
-  detectors/envdante-detector.ipynb
+  notebooks/detectors/envdante-detector.ipynb
 
 
 define NOTEBOOK_METADATA
@@ -63,7 +63,7 @@ endef
 ## .cell[].metadata.id and generates new ones to .cell[].id.  This is
 ## probably because of the new nbformat 4.5.  So we manually copy the
 ## cell ID.
-%.ipynb: %.py
+notebooks/%.ipynb: src/%.py
 	$(JUPYTEXT) --to ipynb --output - $< \
 	    --opt cell_metadata_filter=cellView,collapsed,-id \
 	    --update-metadata '$(NOTEBOOK_METADATA)' \
