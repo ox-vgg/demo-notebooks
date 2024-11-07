@@ -37,34 +37,16 @@ notebooks: \
   notebooks/detectors/envdante-detector.ipynb \
   notebooks/tracking/follow-things-around.ipynb
 
-define NOTEBOOK_METADATA
-{ \
-  "colab": { \
-    "provenance": [], \
-    "toc_visible": true \
-  }, \
-  "kernelspec": { \
-    "name": "python3", \
-    "display_name": "Python 3" \
-  }, \
-  "language_info": { \
-    "name": "python" \
-  }, \
-  "accelerator": "GPU", \
-  "gpuClass": "standard" \
-}
-endef
-
-
-## Jupytext adds the Jupytext options on the notebook metadata (we
-## don't want them).  With regards to cell id, it places them at
-## .cell[].metadata.id and generates new ones to .cell[].id.  This is
-## probably because of the new nbformat 4.5.  So we manually copy the
-## cell ID.
+## Two modifications with jq:
+##
+##   - Jupytext adds the Jupytext options on the notebook metadata
+##     which we don't want so we remove them
+##
+##   - Jupytext outputs nbformat v4.5 which places cell IDs at
+##     `.cell[].metadata.id` but Colab does nbformat v4.0 so we move
+##     the cell IDs to `.cell[].id`
 notebooks/%.ipynb: src/%.py
 	$(JUPYTEXT) --to ipynb --output - $< \
-	    --opt cell_metadata_filter=cellView,collapsed,-id \
-	    --update-metadata '$(NOTEBOOK_METADATA)' \
 	    | $(JQ) --indent 1 'del(.metadata.jupytext)' \
 	    | $(JQ) --indent 1 '.cells[] |= ( .id = .metadata.id)' \
 	    > $@

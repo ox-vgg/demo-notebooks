@@ -1,3 +1,17 @@
+# ---
+# jupyter:
+#   colab:
+#     provenance: []
+#     toc_visible: true
+#   kernelspec:
+#     name: python3
+#     display_name: Python 3
+#   language_info:
+#     name: python
+#   accelerator: GPU
+#   gpuClass: standard
+# ---
+
 # %% [markdown] id="blOJ1buw83T9"
 # # Envisioning Dante - Graphics Detector
 

@@ -1,8 +1,17 @@
 # ---
 # jupyter:
 #   colab:
+#     provenance: []
+#     toc_visible: true
 #     collapsed_sections:
 #       - 7c1gbeVrFHUu
+#   kernelspec:
+#     name: python3
+#     display_name: Python 3
+#   language_info:
+#     name: python
+#   accelerator: GPU
+#   gpuClass: standard
 # ---
 
 # %% [markdown] id="AR4oetmCFHUa"
