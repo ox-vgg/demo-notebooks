@@ -35,7 +35,8 @@ help:
 
 notebooks: \
   notebooks/detectors/envdante-detector.ipynb \
-  notebooks/tracking/follow-things-around.ipynb
+  notebooks/tracking/follow-things-around.ipynb \
+  notebooks/workshops/envdante-detector-out-of-domain-test.ipynb
 
 ## Two modifications with jq:
 ##
